@@ -10,11 +10,11 @@ SMS::Send::UK::GovUkNotify
 
 =head1 VERSION
 
-Version 0.0.1
+Version 0.0.2
 
 =cut
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 =head1 SYNOPSIS
 
@@ -83,6 +83,13 @@ https://docs.notifications.service.gov.uk/rest-api.html#api-keys
 The C<_template_id> parameter as supplied by Gov.Uk Notify
 https://docs.notifications.service.gov.uk/rest-api.html#template-id-required
 
+=item _no_croaking
+
+The C<_no_croaking> parameter silences verbose debug output, when a request fails.
+No PII is designed to be leaked into logs from a failed response, but this flag
+will nonetheless totally avoid this, if you're uncertain, or you just want some
+peace and quiet.
+
 =back
 
 =cut
@@ -114,7 +121,8 @@ sub new {
     my $self = bless {
         token       => $token,
         template_id => $params{_template_id},
-        base_url    => 'https://api.notifications.service.gov.uk'
+        base_url    => 'https://api.notifications.service.gov.uk',
+        no_croaking => $params{_no_croaking}
     }, $class;
 
     return $self;
@@ -229,6 +237,9 @@ sub send_sms {
     # Check the send succeded
     if (!$response->is_success()) {
         croak('API request failed: ' . $response->status_line());
+        croak($response->decoded_content)
+            unless $self->{'no_croaking'};
+
         return 0;
     }
 
